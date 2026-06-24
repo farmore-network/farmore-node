@@ -25,13 +25,13 @@ jobs:
     steps:
       # All repos are laid out as siblings under the workspace so the path deps
       # (../farmore-core, ../farmore-ethereum-adapter, ../farmore-contracts) resolve.
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with: { path: farmore-node }
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with: { repository: farmore-network/farmore-core, ref: "${{ env.CORE_REF }}", path: farmore-core }
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with: { repository: farmore-network/farmore-ethereum-adapter, ref: "${{ env.ADAPTER_REF }}", path: farmore-ethereum-adapter }
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with: { repository: farmore-network/farmore-contracts, ref: "${{ env.CONTRACTS_REF }}", path: farmore-contracts }
 
       - name: Install Rust (pinned 1.96.0)
@@ -68,11 +68,11 @@ jobs:
     name: supply-chain audit
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with: { path: farmore-node }
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with: { repository: farmore-network/farmore-core, ref: "${{ env.CORE_REF }}", path: farmore-core }
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with: { repository: farmore-network/farmore-ethereum-adapter, ref: "${{ env.ADAPTER_REF }}", path: farmore-ethereum-adapter }
       - uses: dtolnay/rust-toolchain@67ef31d5b988238dd797d409d6f9574278e20537 # master
         with: { toolchain: "1.96.0" }
@@ -88,7 +88,7 @@ jobs:
     name: secret scan
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with: { fetch-depth: 0 }
       - uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2
         env:
