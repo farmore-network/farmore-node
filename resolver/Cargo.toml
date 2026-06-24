@@ -1,0 +1,25 @@
+[package]
+name = "farmore-resolver"
+description = "The Farmore resolver/indexer: handle resolution, send-to-handle order preparation, and sign-in with handle ownership. Runs standalone (no node required)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[[bin]]
+name = "farmore-resolver"
+path = "src/main.rs"
+
+[dependencies]
+farmore-core = { workspace = true }
+farmore-ethereum-adapter = { workspace = true }
+alloy = { workspace = true }
+alloy-primitives = { workspace = true }
+axum = { workspace = true }
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+anyhow = { workspace = true }

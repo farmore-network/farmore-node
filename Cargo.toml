@@ -1,0 +1,32 @@
+[workspace]
+resolver = "2"
+members = ["node", "resolver", "e2e"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.91"
+license = "MIT"
+authors = ["Farmore"]
+
+[workspace.dependencies]
+# Cross-repo deps pinned by version; the path builds against sibling checkouts for local
+# cross-stack dev. See README for the published/git-tag form used post-release.
+farmore-core = { path = "../farmore-core", version = "0.1.0" }
+farmore-ethereum-adapter = { path = "../farmore-ethereum-adapter", version = "0.1.0" }
+
+alloy = { version = "1.0", features = ["full", "node-bindings", "signer-local"] }
+alloy-primitives = "1.0"
+async-trait = "0.1"
+thiserror = "2"
+anyhow = "1"
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+axum = "0.7"
+
+[profile.release]
+opt-level = 3
+lto = "thin"

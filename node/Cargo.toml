@@ -1,0 +1,28 @@
+[package]
+name = "farmore-node"
+description = "The Farmore Node: bond collateral, watch intents, front recipients, assert, finalize, and earn FAR. Crash-safe, idempotent daemon."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "farmore-node"
+path = "src/main.rs"
+
+[dependencies]
+farmore-core = { workspace = true }
+farmore-ethereum-adapter = { workspace = true }
+alloy = { workspace = true }
+alloy-primitives = { workspace = true }
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+anyhow = { workspace = true }
+async-trait = { workspace = true }

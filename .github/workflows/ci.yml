@@ -1,0 +1,95 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Pin the dependency revisions used for the cross-stack build/e2e (set to release tags).
+  CONTRACTS_REF: main
+  CORE_REF: main
+  ADAPTER_REF: main
+
+jobs:
+  node:
+    name: build • test • cross-stack e2e
+    runs-on: ubuntu-latest
+    steps:
+      # All repos are laid out as siblings under the workspace so the path deps
+      # (../farmore-core, ../farmore-ethereum-adapter, ../farmore-contracts) resolve.
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with: { path: farmore-node }
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with: { repository: farmore-network/farmore-core, ref: "${{ env.CORE_REF }}", path: farmore-core }
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with: { repository: farmore-network/farmore-ethereum-adapter, ref: "${{ env.ADAPTER_REF }}", path: farmore-ethereum-adapter }
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with: { repository: farmore-network/farmore-contracts, ref: "${{ env.CONTRACTS_REF }}", path: farmore-contracts }
+
+      - name: Install Rust (pinned 1.96.0)
+        uses: dtolnay/rust-toolchain@67ef31d5b988238dd797d409d6f9574278e20537 # master
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt, clippy
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@c7450ba673e133f5ee30098b3b54f444d3a2ca2d # v1
+        with: { version: stable }
+      - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
+        with: { workspaces: farmore-node }
+
+      - name: Fetch contract dependencies (soldeer)
+        working-directory: farmore-contracts
+        run: forge soldeer install
+
+      - name: Format
+        working-directory: farmore-node
+        run: cargo fmt --all --check
+      - name: Clippy
+        working-directory: farmore-node
+        run: cargo clippy --workspace --all-targets -- -D warnings
+      - name: Build
+        working-directory: farmore-node
+        run: cargo build --workspace
+      - name: Test (unit + cross-stack e2e)
+        working-directory: farmore-node
+        env:
+          FARMORE_CONTRACTS_DIR: ${{ github.workspace }}/farmore-contracts
+        run: cargo test --workspace
+
+  audit:
+    name: supply-chain audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with: { path: farmore-node }
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with: { repository: farmore-network/farmore-core, ref: "${{ env.CORE_REF }}", path: farmore-core }
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with: { repository: farmore-network/farmore-ethereum-adapter, ref: "${{ env.ADAPTER_REF }}", path: farmore-ethereum-adapter }
+      - uses: dtolnay/rust-toolchain@67ef31d5b988238dd797d409d6f9574278e20537 # master
+        with: { toolchain: "1.96.0" }
+      - name: cargo-audit + cargo-deny
+        working-directory: farmore-node
+        run: |
+          cargo install cargo-audit --locked
+          cargo install cargo-deny --locked
+          cargo audit
+          cargo deny check
+
+  secrets:
+    name: secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with: { fetch-depth: 0 }
+      - uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2
+        env:
+          GITLEAKS_CONFIG: .gitleaks.toml

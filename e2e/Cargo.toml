@@ -1,0 +1,22 @@
+[package]
+name = "farmore-e2e"
+description = "Cross-stack end-to-end tests: anvil + real contracts + node loop (mint) and slash path."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+publish = false
+
+[dependencies]
+farmore-core = { workspace = true }
+farmore-ethereum-adapter = { workspace = true }
+farmore-node = { path = "../node" }
+alloy = { workspace = true }
+alloy-primitives = { workspace = true }
+tokio = { workspace = true }
+anyhow = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
