@@ -1,5 +1,15 @@
 # farmore-node
 
+> **Status: mainnet is not live yet.** This software runs the full loop on a local devnet
+> and on a public testnet (Stage 2). Live parameters (bond, inventory, hardware, timing)
+> are measured on testnet and audited before mainnet.
+
+**Guides**
+- 🟢 [Running a Node (solver/operator)](docs/RUNNING-A-NODE.md) — earns FAR, **involves
+  real capital and slashing risk.**
+- 🔵 [Running a Resolver](docs/RUNNING-A-RESOLVER.md) — read/index service, **no funds, no
+  risk.**
+
 The **Farmore Node** and **resolver** — a Rust workspace with two binaries:
 
 - **`farmore-node`** — the daemon operators run to earn FAR. It bonds collateral, watches
