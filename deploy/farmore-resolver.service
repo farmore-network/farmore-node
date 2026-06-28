@@ -3,6 +3,10 @@ Description=Farmore resolver (handle resolution / send-to-handle / sign-in) — 
 Documentation=https://github.com/farmore-network/farmore-node
 After=network-online.target
 Wants=network-online.target
+# Start-rate limiting so a crash loop backs off instead of hammering.
+# (StartLimit* belong in [Unit], not [Service].)
+StartLimitIntervalSec=60
+StartLimitBurst=5
 
 [Service]
 Type=simple
@@ -12,9 +16,6 @@ EnvironmentFile=/etc/farmore/resolver.env
 ExecStart=/opt/farmore/bin/farmore-resolver
 Restart=on-failure
 RestartSec=5
-# Start-rate limiting so a crash loop backs off instead of hammering.
-StartLimitIntervalSec=60
-StartLimitBurst=5
 
 # --- Hardening (read-only service, holds no funds) ---
 NoNewPrivileges=true

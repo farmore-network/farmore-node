@@ -165,7 +165,7 @@ With the node running and watching, exercise the live send-to-handle path:
    ```bash
    curl -s -X POST http://<PUBLIC_IP>:8080/send \
      -H 'content-type: application/json' \
-     -d '{"handle":"<recipient_handle>","asset":"USDC","amount":"100000000"}'
+     -d '{"to_handle":"<recipient_handle>","asset":"USDC","amount":"100000000"}'
    ```
 3. Submit the returned ERC-7683 order via `openIntent` from a **sender** wallet (cast/SDK).
 4. The running node detects the intent, **fronts the recipient** on Base Sepolia (the recipient

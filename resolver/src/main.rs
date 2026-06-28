@@ -163,6 +163,7 @@ fn parse_asset(asset: &str) -> B256 {
 
 #[derive(Deserialize)]
 struct SendRequest {
+    #[serde(alias = "handle", alias = "toHandle")]
     to_handle: String,
     asset: String,
     /// Amount in the asset's base units, decimal string.

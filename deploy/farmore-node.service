@@ -3,6 +3,10 @@ Description=Farmore node (bond, watch intents, front, assert, finalize, earn FAR
 Documentation=https://github.com/farmore-network/farmore-node
 After=network-online.target
 Wants=network-online.target
+# Start-rate limiting so a crash loop backs off instead of hammering the RPC.
+# (StartLimit* belong in [Unit], not [Service].)
+StartLimitIntervalSec=120
+StartLimitBurst=5
 
 [Service]
 Type=simple
@@ -12,9 +16,6 @@ EnvironmentFile=/etc/farmore/node.env
 ExecStart=/opt/farmore/bin/farmore-node
 Restart=on-failure
 RestartSec=10
-# Start-rate limiting so a crash loop backs off instead of hammering the RPC.
-StartLimitIntervalSec=120
-StartLimitBurst=5
 
 # Crash-safe state journal lives here; systemd creates /var/lib/farmore owned by the
 # service user. FARMORE_STATE_FILE in node.env points at /var/lib/farmore/...json.
