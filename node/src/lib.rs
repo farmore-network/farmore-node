@@ -52,7 +52,12 @@ where
 {
     let mut delay = Duration::from_millis(250);
     for attempt in 1..=5u32 {
-        match op().await {
+        // Bound each attempt: a hung RPC connection must never block the caller forever.
+        let outcome = match tokio::time::timeout(Duration::from_secs(30), op()).await {
+            Ok(r) => r,
+            Err(_) => Err(anyhow!("{label}: rpc call timed out after 30s")),
+        };
+        match outcome {
             Ok(v) => return Ok(v),
             Err(e) if attempt == 5 => return Err(e.context(format!("{label}: retries exhausted"))),
             Err(e) => {
@@ -177,15 +182,18 @@ impl Node {
         }
 
         let vault = IBondVault::new(self.cfg.bond_vault, self.provider.clone());
-        let free = retry("freeBondOf", || async {
+        // Maintain a TOTAL bond of bond_amount. Use bondOf (total), not freeBondOf: once an
+        // assertion locks exposure, free bond drops below the target even though the total is
+        // already sufficient — checking free would over-deposit a fresh bond on every restart.
+        let bonded = retry("bondOf", || async {
             Ok(vault
-                .freeBondOf(self.account, self.cfg.collateral)
+                .bondOf(self.account, self.cfg.collateral)
                 .call()
                 .await?)
         })
         .await?;
-        if free < self.cfg.bond_amount {
-            let need = self.cfg.bond_amount - free;
+        if bonded < self.cfg.bond_amount {
+            let need = self.cfg.bond_amount - bonded;
             let token = IERC20Faucet::new(self.cfg.collateral, self.provider.clone());
 
             if self.cfg.faucet {
@@ -383,23 +391,34 @@ impl Node {
         let now = self.block_timestamp().await?;
         let settlement = self.settlement();
 
-        let due: Vec<(String, u64)> = self
+        let due: Vec<String> = self
             .state
             .orders
             .iter()
             .filter(|(_, r)| r.stage == Stage::Asserted)
-            .map(|(k, r)| (k.clone(), r.finalizable_at))
+            .map(|(k, _)| k.clone())
             .collect();
 
         let mut finalized = 0usize;
-        for (key, finalizable_at) in due {
-            if now < finalizable_at {
-                continue;
-            }
+        for key in due {
             let order_id: B256 = match key.parse() {
                 Ok(v) => v,
                 Err(_) => continue,
             };
+            // Re-read the authoritative finalize time each tick rather than trusting the value
+            // journaled at assert time: that read can return a stale 0 if the RPC node had not
+            // yet indexed the assert, which would otherwise make us attempt finalize inside the
+            // challenge window (reverts with ChallengeWindowOpen). 0 == not yet asserted/visible.
+            let finalizable_at = match settlement.finalizableAt(order_id).call().await {
+                Ok(v) => v,
+                Err(e) => {
+                    warn!(target: "farmore::node", order = %order_id, error = %e, "finalizableAt read failed; will retry");
+                    continue;
+                }
+            };
+            if finalizable_at == 0 || now < finalizable_at {
+                continue;
+            }
             match self.try_finalize(&settlement, order_id, &key).await {
                 Ok(true) => finalized += 1,
                 Ok(false) => {}
@@ -474,7 +493,12 @@ impl Node {
 
     /// Runs the node loop until SIGINT, ticking every `poll_ms`.
     pub async fn run(mut self) -> Result<()> {
-        self.bootstrap().await.context("bootstrap")?;
+        // Bound bootstrap so a hung RPC can't wedge startup forever; on timeout the process
+        // exits non-zero and systemd restarts it (which then resumes from the journal).
+        match tokio::time::timeout(Duration::from_secs(180), self.bootstrap()).await {
+            Ok(r) => r.context("bootstrap")?,
+            Err(_) => bail!("bootstrap timed out after 180s"),
+        }
         let mut ticker = tokio::time::interval(Duration::from_millis(self.cfg.poll_ms));
         info!(target: "farmore::node", poll_ms = self.cfg.poll_ms, "node running");
         loop {
@@ -485,12 +509,15 @@ impl Node {
                     return Ok(());
                 }
                 _ = ticker.tick() => {
-                    match self.tick().await {
-                        Ok(r) if r.asserted > 0 || r.finalized > 0 => {
+                    // Bound each tick: a single hung RPC call must never freeze the loop. The
+                    // crash-safe journal makes a cancelled tick safe to retry next interval.
+                    match tokio::time::timeout(Duration::from_secs(120), self.tick()).await {
+                        Ok(Ok(r)) if r.asserted > 0 || r.finalized > 0 => {
                             info!(target: "farmore::node", asserted = r.asserted, finalized = r.finalized, "tick");
                         }
-                        Ok(_) => {}
-                        Err(e) => error!(target: "farmore::node", error = %e, "tick error; continuing"),
+                        Ok(Ok(_)) => {}
+                        Ok(Err(e)) => error!(target: "farmore::node", error = %e, "tick error; continuing"),
+                        Err(_) => error!(target: "farmore::node", "tick timed out after 120s; continuing"),
                     }
                 }
             }
