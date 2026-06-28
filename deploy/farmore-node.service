@@ -1,0 +1,36 @@
+[Unit]
+Description=Farmore node (bond, watch intents, front, assert, finalize, earn FAR)
+Documentation=https://github.com/farmore-network/farmore-node
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=farmore
+Group=farmore
+EnvironmentFile=/etc/farmore/node.env
+ExecStart=/opt/farmore/bin/farmore-node
+Restart=on-failure
+RestartSec=10
+# Start-rate limiting so a crash loop backs off instead of hammering the RPC.
+StartLimitIntervalSec=120
+StartLimitBurst=5
+
+# Crash-safe state journal lives here; systemd creates /var/lib/farmore owned by the
+# service user. FARMORE_STATE_FILE in node.env points at /var/lib/farmore/...json.
+StateDirectory=farmore
+WorkingDirectory=/var/lib/farmore
+
+# --- Hardening (the operator key is in the EnvironmentFile, not the unit) ---
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/farmore
+ProtectHome=true
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target
